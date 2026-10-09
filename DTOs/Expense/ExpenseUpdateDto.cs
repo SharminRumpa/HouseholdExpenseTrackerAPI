@@ -13,6 +13,7 @@ public class ExpenseUpdateDto
     public string? WeightUnit { get; set; }
     public string? PaymentMethod { get; set; }
     public string? ExpenseBy { get; set; }
+    public string? ExpenseFor { get; set; }
     public string? Description { get; set; }
 }
 

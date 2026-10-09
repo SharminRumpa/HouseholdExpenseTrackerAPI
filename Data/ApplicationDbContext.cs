@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExpenseItem> ExpenseItems => Set<ExpenseItem>();
     public DbSet<ExpenseDetail> ExpenseDetails => Set<ExpenseDetail>();
     public DbSet<ExpenseDetailsLog> ExpenseDetailsLogs => Set<ExpenseDetailsLog>();
+    public virtual DbSet<ExpenseDeleteRequest> ExpenseDeleteRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -733,6 +734,61 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ActionByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // =========================
+    // Expense Delete Request
+    private static void ConfigureExpenseDeleteRequest(ModelBuilder modelBuilder)
+    {
+       
+        // =========================
+
+        modelBuilder.Entity<ExpenseDeleteRequest>(entity =>
+        {
+            entity.ToTable("ExpenseDeleteRequests");
+
+            entity.HasKey(e => e.ExpenseDeleteRequestId);
+
+            entity.Property(e => e.ExpenseDeleteRequestId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Reason)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.ReviewComment)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.ReviewedAt)
+                .HasColumnType("datetime2");
+
+            entity.HasOne(e => e.Expense)
+                .WithMany()
+                .HasForeignKey(e => e.ExpenseId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.ExpenseId);
+
+            entity.HasIndex(e => e.Status);
+
+            entity.HasIndex(e => e.RequestedByUserId);
         });
     }
 

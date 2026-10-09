@@ -1,21 +1,37 @@
 using HouseholdExpenseTrackerAPI.Data;
 using HouseholdExpenseTrackerAPI.DTOs.Category;
+using HouseholdExpenseTrackerAPI.DTOs.Expense;
 using HouseholdExpenseTrackerAPI.Models;
+using HouseholdExpenseTrackerAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace HouseholdExpenseTrackerAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CategoryController : ControllerBase
+public class CategoriesController : ControllerBase
 {
+
+    private readonly ICategoryService _service;
     private readonly ApplicationDbContext _db;
 
-    public CategoryController(ApplicationDbContext db)
+    public CategoriesController(ICategoryService categoryService, ApplicationDbContext db)
     {
+        _service = categoryService;
         _db = db;
     }
+
+    private int? CurrentUserId =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)
+            ? id
+            : null;
+    
+
+    #region Income Categories
+
+    
 
     // ---------------- Income Categories ----------------
 
@@ -92,6 +108,13 @@ public class CategoryController : ControllerBase
         return NoContent();
     }
 
+    #endregion
+
+
+    #region Expense Categories
+
+   
+
     // ---------------- Expense Categories ----------------
 
     [HttpGet("expense")]
@@ -163,6 +186,12 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
+    #endregion
+
+    #region Expense Sub Categories
+
+    
+
     /// <summary>
     ///  // ---------------- Expense Sub Categories  ----------------
 
@@ -186,6 +215,10 @@ public class CategoryController : ControllerBase
     }
     /// </summary>
     /// <returns></returns>
+    /// 
+    #endregion
+
+    #region Income Sources
 
 
     // ---------------- Income Sources ----------------
@@ -262,4 +295,82 @@ public class CategoryController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    #endregion
+
+
+    #region Expense Items
+
+    // GET api/expense-items
+    [HttpGet("expense-items")]
+    public async Task<ActionResult<List<ExpenseItemResponseDto>>> ExpenseItemGetAll()
+    {
+        return Ok(await _service.GetAllAsync());
+    }
+
+    // GET api/expense-items/5
+    [HttpGet("expense-items/{id:int}")]
+    public async Task<ActionResult<ExpenseItemResponseDto>> ExpenseItemGetById(int id)
+    {
+        var item = await _service.ExpenseItemGetByIdAsync(id);
+        return item is null ? NotFound() : Ok(item);
+    }
+
+    // POST api/expense-items
+    [HttpPost("expense-items")]
+    public async Task<ActionResult<ExpenseItemResponseDto>> ExpenseItemCreate([FromBody] ExpenseItemCreateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ItemName))
+        {
+            return BadRequest(new { message = "Item name is required." });
+        }
+
+        try
+        {
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(ExpenseItemGetById), new { id = created.ExpenseItemId }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PUT api/expense-items/5
+    [HttpPut("expense-items/{id:int}")]
+    public async Task<ActionResult<ExpenseItemResponseDto>> ExpenseItemUpdate(int id, [FromBody] ExpenseItemUpdateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ItemName))
+        {
+            return BadRequest(new { message = "Item name is required." });
+        }
+
+        try
+        {
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // DELETE api/expense-items/5   (soft delete -> IsActive = false)
+    [HttpDelete("expense-items/{id:int}")]
+    public async Task<IActionResult> ExpenseItemDelete(int id)
+    {
+        var deleted = await _service.DeleteAsync(id);
+        return deleted ? NoContent() : NotFound();
+    }
+
+    #endregion
 }

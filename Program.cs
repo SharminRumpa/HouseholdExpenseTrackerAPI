@@ -21,6 +21,7 @@ builder.Services.AddScoped<IIncomeService, IncomeService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 // ---- Controllers ----
 builder.Services.AddControllers();

@@ -7,6 +7,8 @@ public class ExpenseResponseDto
     public string ExpenseCategoryName { get; set; } = string.Empty;
     public int? ExpenseSubCategoryId { get; set; }
     public string? ExpenseSubCategoryName { get; set; }
+    public int? ExpenseItemId { get; set; }
+    public string? ExpenseItemName { get; set; }
     public DateOnly ExpenseDate { get; set; }
     public decimal Amount { get; set; }
     public decimal? Quantity { get; set; }

@@ -1,8 +1,11 @@
-using System.Security.Claims;
+using HouseholdExpenseTrackerAPI.DTOs;
 using HouseholdExpenseTrackerAPI.DTOs.Expense;
+using HouseholdExpenseTrackerAPI.Models;
 using HouseholdExpenseTrackerAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace HouseholdExpenseTrackerAPI.Controllers;
 
@@ -22,6 +25,10 @@ public class ExpenseController : ControllerBase
         int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)
             ? id
             : null;
+
+    #region Expense
+
+    
 
     [HttpGet]
     public async Task<ActionResult<List<ExpenseResponseDto>>> GetAll(
@@ -60,4 +67,57 @@ public class ExpenseController : ControllerBase
         var deleted = await _expenseService.DeleteAsync(id, CurrentUserId);
         return deleted ? NoContent() : NotFound();
     }
+
+    #endregion
+
+
+    #region Expense Delete Requests
+
+    // Member/Admin: Create delete request
+    [HttpPost("expense-delete-requests")]
+    [Authorize(Roles = "Admin,Member")]
+    public async Task<ActionResult<ResponseDto>> CreateDeleteRequest(DeleteRequestDto dto)
+    {
+        var result = await _expenseService.CreateDeleteRequestAsync(dto, CurrentUserId);
+        return Ok(result);
+    }
+
+    // Admin: Get pending delete requests
+    [HttpGet("ExpenseDelete-request/pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ResponseDto>> GetPendingDeleteRequests()
+    {
+        var result = await _expenseService
+            .GetPendingDeleteRequestsAsync(CurrentUserId);
+
+        return result;
+    }
+
+    // Admin: Approve delete request
+    [HttpPut("ExpenseDelete-request/{id}/approve")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ResponseDto>> ApproveDeleteRequest(
+        int id,
+        DeleteReviewDto dto)
+    {
+        var result = await _expenseService
+            .ApproveDeleteRequestAsync(id, dto, CurrentUserId);
+
+        return result;
+    }
+
+    // Admin: Reject delete request
+    [HttpPut("ExpenseDelete-request/{id}/reject")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ResponseDto>> RejectDeleteRequest(
+        int id,
+        DeleteReviewDto dto)
+    {
+        var result = await _expenseService
+            .RejectDeleteRequestAsync(id, dto, CurrentUserId);
+
+        return result;
+    }
+
+    #endregion
 }
