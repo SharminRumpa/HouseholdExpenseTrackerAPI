@@ -1,6 +1,7 @@
 using HouseholdExpenseTrackerAPI.Data;
 using HouseholdExpenseTrackerAPI.Middleware;
 using HouseholdExpenseTrackerAPI.Services;
+using HouseholdExpenseTrackerAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -22,6 +23,8 @@ builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IAccountTransactionService,AccountTransactionService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // ---- Controllers ----
 builder.Services.AddControllers();

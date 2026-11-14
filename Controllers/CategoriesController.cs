@@ -2,7 +2,7 @@ using HouseholdExpenseTrackerAPI.Data;
 using HouseholdExpenseTrackerAPI.DTOs.Category;
 using HouseholdExpenseTrackerAPI.DTOs.Expense;
 using HouseholdExpenseTrackerAPI.Models;
-using HouseholdExpenseTrackerAPI.Services;
+using HouseholdExpenseTrackerAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -188,31 +188,119 @@ public class CategoriesController : ControllerBase
 
     #endregion
 
-    #region Expense Sub Categories
 
-    
+    #region Expense Sub Categories 
 
     /// <summary>
     ///  // ---------------- Expense Sub Categories  ----------------
 
+    //[HttpGet("expense-subcategories")]
+    //public async Task<ActionResult<List<SubCategoryDto>>> GetExpenseSubCategories()
+    //{
+    //    var result = await _db.ExpenseSubCategories
+    //        .Select(sc => new SubCategoryDto
+    //        {
+    //            SubCategoryId = sc.ExpenseSubCategoryId,
+    //            CategoryId = sc.ExpenseCategoryId,
+    //            CategoryName = sc.ExpenseCategory.CategoryName ?? "-",
+    //            SubCategoryName = sc.SubCategoryName,
+    //            Description = sc.Description,
+    //            IsActive = sc.IsActive
+    //        })
+    //        .OrderBy(sc => sc.SubCategoryName)
+    //        .ToListAsync();
+
+    //    return Ok(result);
+    //}
+
+    // GET api/expense-sub-categories
     [HttpGet("expense-subcategories")]
     public async Task<ActionResult<List<SubCategoryDto>>> GetExpenseSubCategories()
     {
-        var result = await _db.ExpenseSubCategories
-            .Select(sc => new SubCategoryDto
-            {
-                SubCategoryId = sc.ExpenseSubCategoryId,
-                CategoryId = sc.ExpenseCategoryId,
-                CategoryName = sc.ExpenseCategory.CategoryName ?? "-",
-                SubCategoryName = sc.SubCategoryName,
-                Description = sc.Description,
-                IsActive = sc.IsActive
-            })
-            .OrderBy(sc => sc.SubCategoryName)
-            .ToListAsync();
-
-        return Ok(result);
+        return Ok(await _service.SubCategoryGetAllAsync());
     }
+
+    // GET api/expense-sub-categories/5
+    [HttpGet("expense-subcategories/{id:int}")]
+    public async Task<ActionResult<SubCategoryDto>> GetById(int id)
+    {
+        var item = await _service.SubCategoryGetByIdAsync(id);
+        return item is null ? NotFound() : Ok(item);
+    }
+
+    // POST api/expense-sub-categories
+    [HttpPost("expense-subcategories")]
+    public async Task<ActionResult<SubCategoryDto>> Create([FromBody] ExpenseSubCategorySaveDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.SubCategoryName))
+        {
+            return BadRequest(new { message = "Sub-category name is required." });
+        }
+
+        try
+        {
+            var created = await _service.SubCategoryCreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.SubCategoryId }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PUT api/expense-sub-categories/5
+    [HttpPut("expense-subcategories/{id:int}")]
+    public async Task<ActionResult<SubCategoryDto>> Update(int id, [FromBody] ExpenseSubCategorySaveDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.SubCategoryName))
+        {
+            return BadRequest(new { message = "Sub-category name is required." });
+        }
+
+        try
+        {
+            var updated = await _service.SubCategoryUpdateAsync(id, dto);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PATCH api/expense-sub-categories/5/status   body: { "isActive": true }
+    [HttpPatch("expense-subcategories/{id:int}/status")]
+    public async Task<ActionResult<SubCategoryDto>> SetStatus(int id, [FromBody] ExpenseSubCategoryStatusDto dto)
+    {
+        var updated = await _service.SetActiveAsync(id, dto.IsActive);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
+    // DELETE api/expense-sub-categories/5
+    [HttpDelete("expense-subcategories/{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            var deleted = await _service.SubCategoryDeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+
+
     /// </summary>
     /// <returns></returns>
     /// 

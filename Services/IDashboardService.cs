@@ -9,6 +9,8 @@ public class DashboardSummaryDto
 {
     public int Year { get; set; }
     public int Month { get; set; }
+    public decimal TotalDailyIncome { get; set; }
+    public decimal TotalDailyExpense { get; set; }
     public decimal TotalIncome { get; set; }
     public decimal TotalExpense { get; set; }
     public decimal Balance { get; set; }

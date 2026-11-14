@@ -64,5 +64,19 @@ namespace HouseholdExpenseTrackerAPI.Controllers
         {
             return Ok(await _lookupService.GetRolesAsync());
         }
+
+        // GET api/reports/expense-persons
+        [HttpGet("expense-persons")]
+        public async Task<ActionResult<List<string>>> GetExpensePersons()
+        {
+            return Ok(await _lookupService.GetExpensePersonsAsync());
+        }
+
+        // GET api/reports/expense-for-persons
+        [HttpGet("expense-for-persons")]
+        public async Task<ActionResult<List<string>>> GetExpenseForPersons()
+        {
+            return Ok(await _lookupService.GetExpenseForPersonsAsync());
+        }
     }
 }

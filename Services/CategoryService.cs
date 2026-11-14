@@ -1,6 +1,8 @@
 ﻿using HouseholdExpenseTrackerAPI.Data;
+using HouseholdExpenseTrackerAPI.DTOs.Category;
 using HouseholdExpenseTrackerAPI.DTOs.Expense;
 using HouseholdExpenseTrackerAPI.Models;
+using HouseholdExpenseTrackerAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseholdExpenseTrackerAPI.Services
@@ -131,6 +133,144 @@ namespace HouseholdExpenseTrackerAPI.Services
         };
 
 
+
+        #endregion
+
+
+        #region Expense Sub Category
+
+        public async Task<List<SubCategoryDto>> SubCategoryGetAllAsync()
+        {
+            return await SubCategoryBaseQuery()
+                .OrderBy(s => s.ExpenseCategory.CategoryName)
+                .ThenBy(s => s.SubCategoryName)
+                .Select(s => ToDto(s))
+                .ToListAsync();
+        }
+
+        public async Task<SubCategoryDto?> SubCategoryGetByIdAsync(int id)
+        {
+            return await SubCategoryBaseQuery()
+                .Where(s => s.ExpenseSubCategoryId == id)
+                .Select(s => ToDto(s))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<SubCategoryDto> SubCategoryCreateAsync(ExpenseSubCategorySaveDto dto)
+        {
+            var name = dto.SubCategoryName.Trim();
+            await EnsureValidAsync(dto.ExpenseCategoryId, name, excludeId: null);
+
+            var entity = new ExpenseSubCategory
+            {
+                ExpenseCategoryId = dto.ExpenseCategoryId,
+                SubCategoryName = name,
+                Description = CleanText(dto.Description),
+                IsActive = dto.IsActive,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.ExpenseSubCategories.Add(entity);
+            await _db.SaveChangesAsync();
+
+            return (await SubCategoryGetByIdAsync(entity.ExpenseCategoryId))!;
+        }
+
+        public async Task<SubCategoryDto?> SubCategoryUpdateAsync(int id, ExpenseSubCategorySaveDto dto)
+        {
+            var entity = await _db.ExpenseSubCategories.FirstOrDefaultAsync(s => s.ExpenseSubCategoryId == id);
+            if (entity is null) return null;
+
+            var name = dto.SubCategoryName.Trim();
+            await SubCategoryEnsureValidAsync(dto.ExpenseCategoryId, name, excludeId: id);
+
+            entity.ExpenseCategoryId = dto.ExpenseCategoryId;
+            entity.SubCategoryName = name;
+            entity.Description = CleanText(dto.Description);
+            entity.IsActive = dto.IsActive;
+            entity.LastUpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return await SubCategoryGetByIdAsync(id);
+        }
+
+        public async Task<SubCategoryDto?> SetActiveAsync(int id, bool isActive)
+        {
+            var entity = await _db.ExpenseSubCategories.FirstOrDefaultAsync(s => s.ExpenseSubCategoryId == id);
+            if (entity is null) return null;
+
+            entity.IsActive = isActive;
+            entity.LastUpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return await SubCategoryGetByIdAsync(id);
+        }
+
+        public async Task<bool> SubCategoryDeleteAsync(int id)
+        {
+            var entity = await _db.ExpenseSubCategories.FirstOrDefaultAsync(s => s.ExpenseSubCategoryId == id);
+            if (entity is null) return false;
+
+            _db.ExpenseSubCategories.Remove(entity);
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Foreign keys from ExpenseItems / ExpenseDetails block the delete.
+                throw new InvalidOperationException(
+                    "This sub-category is already in use and cannot be deleted. Deactivate it instead.");
+            }
+
+            return true;
+        }
+
+        private IQueryable<ExpenseSubCategory> SubCategoryBaseQuery()
+        {
+            return _db.ExpenseSubCategories
+                .AsNoTracking()
+                .Include(s => s.ExpenseCategory);
+        }
+
+        private async Task SubCategoryEnsureValidAsync(int categoryId, string name, int? excludeId)
+        {
+            var categoryExists = await _db.ExpenseCategories
+                .AnyAsync(c => c.ExpenseCategoryId == categoryId);
+
+            if (!categoryExists)
+            {
+                throw new ArgumentException("The selected category does not exist.");
+            }
+
+            var duplicate = await _db.ExpenseSubCategories.AnyAsync(s =>
+                s.ExpenseCategoryId == categoryId &&
+                s.SubCategoryName == name &&
+                (excludeId == null || s.ExpenseSubCategoryId != excludeId));
+
+            if (duplicate)
+            {
+                throw new InvalidOperationException("A sub-category with this name already exists in the selected category.");
+            }
+        }
+
+        private static string? CleanText(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static SubCategoryDto ToDto(ExpenseSubCategory s) => new()
+        {
+            SubCategoryId = s.ExpenseSubCategoryId,
+            CategoryId = s.ExpenseCategoryId,
+            CategoryName = s.ExpenseCategory!.CategoryName,
+            SubCategoryName = s.SubCategoryName,
+            Description = s.Description,
+            IsActive = s.IsActive,
+            CreatedAt = s.CreatedAt,
+            LastUpdatedAt = s.LastUpdatedAt
+        };
 
         #endregion
     }

@@ -89,5 +89,27 @@ namespace HouseholdExpenseTrackerAPI.Services
                 .Select(r => new DropdownItemDto { Id = r.RoleId, Name = r.RoleName })
                 .ToListAsync();
         }
+
+        public async Task<List<string>> GetExpensePersonsAsync()
+        {
+            return await _db.ExpenseDetails
+                .AsNoTracking()
+                .Where(e => e.ExpenseBy != null && e.ExpenseBy != "")
+                .Select(e => e.ExpenseBy!)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+        }
+
+        public async Task<List<string>> GetExpenseForPersonsAsync()
+        {
+            return await _db.ExpenseDetails
+                .AsNoTracking()
+                .Where(e => e.ExpenseFor != null && e.ExpenseFor != "")
+                .Select(e => e.ExpenseFor!)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+        }
     }
 }

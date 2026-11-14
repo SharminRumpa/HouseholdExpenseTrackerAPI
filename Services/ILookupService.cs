@@ -10,5 +10,11 @@ namespace HouseholdExpenseTrackerAPI.Services
         Task<List<ExpenseSubCategoryDropdownDto>> GetExpenseSubCategoriesAsync(int? expenseCategoryId);
         Task<IReadOnlyList<DropdownItemDto>> GetExpenseItemsAsync(int expenseSubCategoryId);
         Task<List<DropdownItemDto>> GetRolesAsync();
+
+        // Distinct, non-empty ExpenseBy values for the "person" dropdown.
+        Task<List<string>> GetExpensePersonsAsync();
+
+        // Distinct, non-empty ExpenseFor values for the "expense for" dropdown.
+        Task<List<string>> GetExpenseForPersonsAsync();
     }
 }

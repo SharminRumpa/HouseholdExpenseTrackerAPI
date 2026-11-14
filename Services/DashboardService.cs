@@ -16,6 +16,9 @@ public class DashboardService : IDashboardService
     {
         var start = new DateOnly(year, month, 1);
         var end = start.AddMonths(1);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+
+
 
         var incomeQuery = _db.IncomeDetails
             .Include(i => i.IncomeCategory)
@@ -27,6 +30,9 @@ public class DashboardService : IDashboardService
 
         var totalIncome = await incomeQuery.SumAsync(i => (decimal?)i.Amount) ?? 0m;
         var totalExpense = await expenseQuery.SumAsync(e => (decimal?)e.Amount) ?? 0m;
+
+        var totalDailyIncome = await incomeQuery.Where(i => i.ReceivedDate == today).SumAsync(i => (decimal?)i.Amount) ?? 0m;
+        var totalDailyExpense = await expenseQuery.Where(e => e.ExpenseDate == today).SumAsync(e => (decimal?)e.Amount) ?? 0m;
 
         var expenseByCategory = await expenseQuery
             .GroupBy(e => e.ExpenseCategory!.CategoryName)
@@ -46,6 +52,8 @@ public class DashboardService : IDashboardService
             Month = month,
             TotalIncome = totalIncome,
             TotalExpense = totalExpense,
+            TotalDailyIncome = totalDailyIncome,
+            TotalDailyExpense = totalDailyExpense,
             Balance = totalIncome - totalExpense,
             ExpenseByCategory = expenseByCategory,
             IncomeByCategory = incomeByCategory

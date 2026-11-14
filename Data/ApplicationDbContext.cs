@@ -39,6 +39,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExpenseDetailsLog> ExpenseDetailsLogs => Set<ExpenseDetailsLog>();
     public virtual DbSet<ExpenseDeleteRequest> ExpenseDeleteRequests { get; set; }
 
+    public virtual DbSet<PersonalAccount> PersonalAccounts { get; set; }
+    public virtual DbSet<PersonalAccountTransaction> PersonalAccountTransactions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -58,6 +61,11 @@ public class ApplicationDbContext : DbContext
         ConfigureExpenseItem(modelBuilder);
         ConfigureExpenseDetail(modelBuilder);
         ConfigureExpenseDetailsLog(modelBuilder);
+
+        ConfigureExpenseDeleteRequest(modelBuilder);
+
+        ConfigurePersonalAccount(modelBuilder);
+        ConfigurePersonalAccountTransaction(modelBuilder);
     }
 
     // =========================
@@ -739,6 +747,7 @@ public class ApplicationDbContext : DbContext
 
     // =========================
     // Expense Delete Request
+    // =========================
     private static void ConfigureExpenseDeleteRequest(ModelBuilder modelBuilder)
     {
        
@@ -791,6 +800,118 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.RequestedByUserId);
         });
     }
+
+
+    // =========================
+    // Personal Account
+    // =========================
+    private static void ConfigurePersonalAccount(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PersonalAccount>(entity =>
+        {
+            entity.ToTable("PersonalAccounts", "dbo");
+
+            entity.HasKey(e => e.PersonalAccountId);
+
+            entity.Property(e => e.PersonalAccountId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.AccountName)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.AccountType)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(e => e.Details)
+                .HasMaxLength(250);
+
+            entity.Property(e => e.CurrentBalance)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("datetime2");
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        
+
+    }
+
+
+    // =========================
+    // Personal Account Transaction
+    // =========================
+    private static void ConfigurePersonalAccountTransaction(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PersonalAccountTransaction>(entity =>
+        {
+            entity.ToTable("PersonalAccountTransactions", "dbo");
+
+            entity.HasKey(e => e.TransactionId);
+
+            entity.Property(e => e.TransactionId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.TransactionType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.TransactionDate)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.Details)
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(e => e.Debit)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(e => e.Credit)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(e => e.BalanceAfterTransaction)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2");
+
+            entity.HasIndex(e => new
+            {
+                e.PersonalAccountId,
+                e.TransactionDate
+            });
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne(e => e.PersonalAccount)
+                .WithMany(a => a.Transactions)
+                .HasForeignKey(e => e.PersonalAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+    }
+
 
     private const string MonthCaseExpressionSql = """
         CASE MONTH(ReceivedDate)
